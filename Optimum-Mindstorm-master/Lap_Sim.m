@@ -1,4 +1,4 @@
-% Jonathan Vogel - Russell B
+% Jonathan Vogel - Russell 
 % Clemson Formula SAE
 % Tradespace Analysis Project
 % 2019 Michigan Dynamic Event Lap Sim
