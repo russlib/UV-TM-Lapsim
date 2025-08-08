@@ -1,0 +1,10 @@
+sf_x,sf_y,tire_radius
+0.6,0.47,0.75417
+finalDrive,drivetrainLosses,PowerLimit,T_lock,VMAX
+4.2,0.95,73696,0.67,0
+LLTD,W,WDF,cg,l,twf,twr
+0.505,630,0.5,0.95,5.0208,4,3.8333
+rg_f,rg_r,pg,WRF,WRR,IA_staticf,IA_staticr,IA_compensationf,IA_compensationr,casterf,KPIf,casterr,KPIr
+0.45,0.45,0.3,180,180,-0.5,-0.3,60,80,0,0,4.1568,0
+cl,cd,CoP
+5,2.5,45
