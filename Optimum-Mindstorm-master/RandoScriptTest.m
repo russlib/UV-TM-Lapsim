@@ -61,8 +61,8 @@ end
 tire_radius = 9.05/12; % ft
 tyreRadius = tire_radius/3.28; % meters
 % Scaling factors for tuning
-sf_x = .6;
-sf_y = .47;
+sf_x = .1;
+sf_y = .1;
 % Define results filename
 results_folder = 'C:\Users\Tom Cruise\OneDrive - University of Victoria (1)\MENG FSAE - UVic FSAE SharePoint\DESIGN RESOURCES\Design Event Prep\Requirement Generation\LapSim\UV-TM-Lapsim\SimResults';
 results_filename = fullfile(results_folder, 'results.csv');

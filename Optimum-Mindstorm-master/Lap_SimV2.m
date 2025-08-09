@@ -10,15 +10,6 @@ clc
 % The purpose of this code is to evaluate the points-scoring capacity of a
 % virtual vehicle around the 2019 FSAE Michigan Dynamic Event Tracks
 
-% Jonathan Vogel
-% Clemson Formula SAE
-% Tradespace Analysis Project
-% 2019 Michigan Dynamic Event Lap Sim
-clear
-close all
-clc
-% The purpose of this code is to evaluate the points-scoring capacity of a
-% virtual vehicle around the 2019 FSAE Michigan Dynamic Event Tracks
 %% Section 0: Name all symbolic variables
 % Don't touch this. This is just naming a bunch of variables and making
 % them global so that all the other functions can access them
@@ -26,70 +17,97 @@ global r_max accel grip deccel lateral cornering...
     top_speed r_min path_boundaries tire_radius...
     powertrainpackage track_width path_boundaries_ax
 %% Section 1: Input Tire Model
+% this section is required, everything should be pre-loaded so no need to
+% touch any of this, unless you want to change the tire being evaluated.
+% The only things you might want to change are the scaling factors at the
+% bottom of the section
 disp('2019 Michigan Endurance Points Analysis')
 disp('Loading Tire Model')
-% Define global variables for tire model
+
+% Declare sim_data_outputs as a global variable
+global sim_data_outputs;
+
+% First we load in the lateral tire force model, which is a Pacejka model
+% created by derek:
 global FZ0 LFZO LCX LMUX LEX LKX LHX LVX LCY LMUY LEY LKY LHY LVY ...
        LGAY Ltr LRES LGAZ LXAL LYKA LVYKA LS LSGKP LSGAL LGYR KY
-% Load tire model files
-try
-    load('A1654run21_MF52_Fy_GV12.mat')
-    load('A1654run21_MF52_Fy_12.mat')
-catch e
-    error('Failed to load tire model files: %s', e.message);
-end
-% Define original and copied tire model filenames
-tire_folder = 'C:\temp';
-tire_filename = fullfile(tire_folder, 'Hoosier_R25B_18.0x7.5-10_FX_12psi.mat');
-tire_copy_filename = fullfile(tire_folder, 'Hoosier_R25B_18.0x7.5-10_FX_12psi_copy.mat');
-% Check if original file exists
-if ~exist(tire_filename, 'file')
-    error('Original tire model file does not exist: %s', tire_filename);
-end
-% Copy the original file to a new file
-try
-    copyfile(tire_filename, tire_copy_filename, 'f');
-catch e
-    error('Failed to copy tire model file %s to %s: %s', tire_filename, tire_copy_filename, e.message);
-end
-% Load the copied file
-try
-    load(tire_copy_filename)
-catch e
-    error('Failed to load copied tire model file %s: %s', tire_copy_filename, e.message);
-end
-tire_radius = 9.05/12; % ft
-tyreRadius = tire_radius/3.28; % meters
-% Scaling factors for tuning
-sf_x = .6;
-sf_y = .47;
+load('A1654run21_MF52_Fy_GV12.mat')
+% then load in coefficients for Magic Formula 5.2 Tire Model:
+load('A1654run21_MF52_Fy_12.mat')
+% Next you load in the longitudinal tire model, which for now is just a
+% CSAPS spline fit to the TTC data
+% find your pathname and filename for the tire you want to load in
+filename = 'Hoosier_R25B_18.0x7.5-10_FX_12psi.mat';
+load(filename)
+tire_radius = 9.05/12; %ft
+tyreRadius = tire_radius/3.28; % converts to meters
+% finally, we have some scaling factors for longitudinal (x) and lateral
+% (y) friction. You can use these to tune the lap sim to correlate better
+% to logged data
+sf_x = .9;
+sf_y = .80;
 % Define results filename
 results_folder = 'C:\Users\Tom Cruise\OneDrive - University of Victoria (1)\MENG FSAE - UVic FSAE SharePoint\DESIGN RESOURCES\Design Event Prep\Requirement Generation\LapSim\UV-TM-Lapsim\SimResults';
 results_filename = fullfile(results_folder, 'results.csv');
-% Store inputs in global structure for later logging
-global sim_data
-sim_data.tire_inputs = struct('sf_x', sf_x, 'sf_y', sf_y, 'tire_radius', tire_radius, 'tire_filename', tire_filename);
-sim_data.results_filename = results_filename; % Store for use in Section 19
+
+
+% Declare global variables
+global sim_data_tire_inputs sim_data_results_filename;
+
+% Initialize sim_data_tire_inputs as a cell array if it doesn't exist or isn't a cell array
+if ~exist('sim_data_tire_inputs', 'var') || ~iscell(sim_data_tire_inputs)
+    sim_data_tire_inputs = {};
+end
+
+% Prepend name-value pairs to the front of sim_data_tire_inputs
+sim_data_tire_inputs = {'sf_x', sf_x, ...
+    'sf_y', sf_y, ...
+    'tire_radius', tire_radius, ...
+    'tire_filename', filename, ...
+    sim_data_tire_inputs{:}};
+
+% Store results_filename
+sim_data_results_filename = results_filename;
+
+
 disp('Tire inputs and results filename stored for logging');
 %% Section 2: Input Powertrain Model
+% change whatever you want here, this is the 2018 powertrain package iirc
+% just keep your units consistent please
 disp('Loading Engine Model')
 engineSpeed = [100:100:5000]; % RPM
+% torque should be in N-m:
 engineTq = [220 222 224 226 228 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230];
 finalDrive = 42/10; % large sprocket/small sprocket
-drivetrainLosses = .95; % percent of torque to rear wheels
+drivetrainLosses = .95; % percent of torque that makes it to the rear wheels
 PowerLimit = 80000*0.94*0.98; % [W]
-T_lock = 67; % differential locking torque (0 = open, 100 = locked)
-% Intermediary calculations
+T_lock = 67; % differential locking torque (0 =  open, 100 = locked)
+
+% Intermediary Calcs/Save your results into the workspace
 VMAX = floor(3.28/(finalDrive/tyreRadius*60/(2*pi)));
 T_lock = T_lock/100;
 powertrainpackage = {engineSpeed engineTq finalDrive drivetrainLosses PowerLimit};
-% Store inputs in global structure
-global sim_data
-sim_data.powertrain_inputs = struct('finalDrive', finalDrive, 'drivetrainLosses', drivetrainLosses, 'PowerLimit', PowerLimit, 'T_lock', T_lock, 'VMAX', VMAX);
-disp('Powertrain inputs stored for logging');
 
+% % Declare global variable
+% global sim_data_powertrain_inputs;
+% 
+% % Initialize sim_data_powertrain_inputs as a cell array if it doesn't exist or isn't a cell array
+% if ~exist('sim_data_powertrain_inputs', 'var') || ~iscell(sim_data_powertrain_inputs)
+%     sim_data_powertrain_inputs = {};
+% end
+% 
+% % Prepend name-value pairs to the front of sim_data_powertrain_inputs
+% sim_data_powertrain_inputs = {'finalDrive', finalDrive, ...
+%     'drivetrainLosses', drivetrainLosses, ...
+%     'PowerLimit', PowerLimit, ...
+%     'T_lock', T_lock, ...
+%     'VMAX', VMAX, ...
+%     sim_data_powertrain_inputs{:}};
+
+disp('Powertrain inputs stored for logging');
 %% Section 3: Vehicle Architecture
 disp('Loading Vehicle Characteristics')
+% These are the basic vehicle architecture primary inputs:
 LLTD = 50.5; % Front lateral load transfer distribution (%)
 W = 630; % vehicle + driver weight (lbs)
 WDF = 50; % front weight distribution (%)
@@ -97,7 +115,8 @@ cg = 11.4/12; % center of gravity height (ft)
 l = 60.25/12; % wheelbase (ft)
 twf = 48/12; % front track width (ft)
 twr = 46/12; % rear track width (ft)
-% Intermediary calculations
+
+% some intermediary calcs you don't have to touch
 LLTD = LLTD/100;
 WDF = WDF/100;
 m = W/32.2; % mass (lbm)
@@ -106,31 +125,56 @@ WR = W*(1-WDF); % rear weight
 a = l*(1-WDF); % front axle to cg
 b = l*WDF; % rear axle to cg
 tw = twf;
-% Store inputs in global structure
-global sim_data
-sim_data.vehicle_inputs = struct('LLTD', LLTD*100, 'W', W, 'WDF', WDF*100, 'cg', cg, 'l', l, 'twf', twf, 'twr', twr);
-disp('Vehicle architecture inputs stored for logging');
 
+% % Declare global variable
+% global sim_data_vehicle_inputs;
+% 
+% % Initialize sim_data_vehicle_inputs as a cell array if it doesn't exist or isn't a cell array
+% if ~exist('sim_data_vehicle_inputs', 'var') || ~iscell(sim_data_vehicle_inputs)
+%     sim_data_vehicle_inputs = {};
+% end
+
+% % Prepend name-value pairs to the front of sim_data_vehicle_inputs
+% sim_data_vehicle_inputs = {'LLTD', LLTD*100, ...
+%     'W', W, ...
+%     'WDF', WDF*100, ...
+%     'cg', cg, ...
+%     'l', l, ...
+%     'twf', twf, ...
+%     'twr', twr, ...
+%     sim_data_vehicle_inputs{:}};
+
+disp('Vehicle architecture inputs stored for logging');
 %% Section 4: Input Suspension Kinematics
 disp('Loading Suspension Kinematics')
+% this section is actually optional. So if you set everything to zero, you
+% can essentially leave this portion out of the analysis. Useful if you are
+% only trying to explore some higher level relationships
+
+% Pitch and roll gradients define how much the car's gonna move around
 rg_f = 0.45; % front roll gradient (deg/g)
 rg_r = 0.45; % rear roll gradient (deg/g)
 pg = 0.3; % pitch gradient (deg/g)
-WRF = 180; % front ride rate (lbs/in)
-WRR = 180; % rear ride rate (lbs/in)
+WRF = 180; % front and rear ride rates (lbs/in)
+WRR = 180; 
+
+% then you can select your camber alignment
 IA_staticf = -0.5; % front static camber angle (deg)
 IA_staticr = -0.3; % rear static camber angle (deg)
 IA_compensationf = 60; % front camber compensation (%)
 IA_compensationr = 80; % rear camber compensation (%)
+
+% lastly you can select your kingpin axis parameters
 casterf = 0; % front caster angle (deg)
 KPIf = 0; % front kingpin inclination angle (deg)
-casterr = 4.1568; % rear caster angle (deg)
-KPIr = 0; % rear kingpin inclination angle (deg)
-% Intermediary calculations
-IA_staticf = deg2rad(IA_staticf);
-IA_staticr = deg2rad(IA_staticr);
-IA_compensationf = IA_compensationf/100;
-IA_compensationr = IA_compensationr/100;
+casterr = 4.1568;
+KPIr = 0;
+
+% intermediary calcs, plz ignore
+IA_staticf = deg2rad(IA_staticf); % front static camber angle (deg)
+IA_staticr = deg2rad(IA_staticr); % rear static camber angle (deg)
+IA_compensationf = IA_compensationf/100; % front camber compensation (%)
+IA_compensationr = IA_compensationr/100; % rear camber compensation (%)
 casterf = deg2rad(casterf);
 KPIf = deg2rad(KPIf);
 casterr = deg2rad(casterr);
@@ -139,26 +183,62 @@ IA_roll_inducedf = asin(2/twf/12);
 IA_roll_inducedr = asin(2/twr/12);
 IA_gainf = IA_roll_inducedf*IA_compensationf;
 IA_gainr = IA_roll_inducedr*IA_compensationr;
-% Store inputs in global structure
-global sim_data
-sim_data.suspension_inputs = struct('rg_f', rg_f, 'rg_r', rg_r, 'pg', pg, 'WRF', WRF, 'WRR', WRR, ...
-    'IA_staticf', rad2deg(IA_staticf), 'IA_staticr', rad2deg(IA_staticr), ...
-    'IA_compensationf', IA_compensationf*100, 'IA_compensationr', IA_compensationr*100, ...
-    'casterf', rad2deg(casterf), 'KPIf', rad2deg(KPIf), 'casterr', rad2deg(casterr), 'KPIr', rad2deg(KPIr));
-disp('Suspension inputs stored for logging');
 
+% Declare global variable
+global sim_data_suspension_inputs;
+
+% Initialize sim_data_suspension_inputs as a cell array if it doesn't exist or isn't a cell array
+if ~exist('sim_data_suspension_inputs', 'var') || ~iscell(sim_data_suspension_inputs)
+    sim_data_suspension_inputs = {};
+end
+
+% % Prepend name-value pairs to the front of sim_data_suspension_inputs
+% sim_data_suspension_inputs = {'rg_f', rg_f, ...
+%     'rg_r', rg_r, ...
+%     'pg', pg, ...
+%     'WRF', WRF, ...
+%     'WRR', WRR, ...
+%     'IA_staticf', rad2deg(IA_staticf), ...
+%     'IA_staticr', rad2deg(IA_staticr), ...
+%     'IA_compensationf', IA_compensationf*100, ...
+%     'IA_compensationr', IA_compensationr*100, ...
+%     'casterf', rad2deg(casterf), ...
+%     'KPIf', rad2deg(KPIf), ...
+%     'casterr', rad2deg(casterr), ...
+%     'KPIr', rad2deg(KPIr), ...
+%     sim_data_suspension_inputs{:}};
+
+
+disp('Suspension inputs stored for logging');
 %% Section 5: Input Aero Parameters
 disp('Loading Aero Model')
-cl = 5; % coefficient of lift
-cd = 2.5; % coefficient of drag
+% C = 1/2 * C * Frontal Area * conversion * airDensity
+% C = 0.5 * C * 1.15 [m^2] * 10.764 [m^2 to ft^2] * 0.00225 [slugs/ft^3]
+% C = 0.013926 * C
+cl=5; %coefficient of lift
+cd=2.5; %coefficient of drag
 Cl = 0.013926*cl;
 Cd = 0.013926*cd;
 CoP = 45; % front downforce distribution (%)
-% Intermediary calculations
+
+% Intermediary Calculations
 CoP = CoP/100;
 % Store inputs in global structure
-global sim_data
-sim_data.aero_inputs = struct('cl', cl, 'cd', cd, 'CoP', CoP*100);
+% Declare global variable
+global sim_data_aero_inputs;
+
+% % Initialize sim_data_aero_inputs as a cell array if it doesn't exist or isn't a cell array
+% if ~exist('sim_data_aero_inputs', 'var') || ~iscell(sim_data_aero_inputs)
+%     sim_data_aero_inputs = {};
+% end
+
+% % Prepend name-value pairs to the front of sim_data_aero_inputs
+% sim_data_aero_inputs = {'cl', cl, ...
+%     'cd', cd, ...
+%     'CoP', CoP*100, ...
+%     sim_data_aero_inputs{:}};
+
+
 disp('Aero inputs stored for logging');
 %% Section 6: Generate GGV Diagram
 % this is where the m e a t of the lap sim takes place. The GGV diagram is
@@ -169,6 +249,8 @@ disp('Generating g-g-V Diagram')
 
 deltar = 0;
 deltaf = 0;
+% velocity = 15:5:130; % range of velocities at which sim will evaluate (ft/s)
+% radii = [15:10:155]; % range of turn radii at which sim will evaluate (ft)
 velocity = 15:5:130; % range of velocities at which sim will evaluate (ft/s)
 radii = [15:10:155]; % range of turn radii at which sim will evaluate (ft)
 
@@ -1556,25 +1638,13 @@ frontF = zeros(3,3);
 rearF = zeros(3,3);
 % then calculate loads based on those speeds and accelerations: 
 % see documentation spreadsheet for translation
-frontF(3,:) = [WF/2 + Cl*VX_max^2*CoP/2 - WF*AX_max*cg/l/2 , WF/2 + Cl*VX_min^2*CoP/2 - WF*AX_min*cg/l/2, WF/2 + Cl*VY_max^2*CoP/2 + WF*AY_max*cg/tw/2];
-rearF(3,:) = [WR/2 + Cl*VX_max^2*(1-CoP)/2 + WR*AX_max*cg/l/2 , WR/2 + Cl*VX_min^2*(1-CoP)/2 + WR*AX_min*cg/l/2, WR/2 + Cl*VY_max^2*(1-CoP)/2 + WR*AY_max*cg/tw/2];
+frontF(3,:) = [WF/2 + Cl*VX_max.^2*CoP/2 - WF*AX_max*cg/l/2 , WF/2 + Cl*VX_min.^2*CoP/2 - WF*AX_min*cg/l/2, WF/2 + Cl*VY_max.^2*CoP/2 + WF*AY_max*cg/tw/2];
+rearF(3,:) = [WR/2 + Cl*VX_max.^2*(1-CoP)/2 + WR*AX_max*cg/l/2 , WR/2 + Cl*VX_min.^2*(1-CoP)/2 + WR*AX_min*cg/l/2, WR/2 + Cl*VY_max.^2*(1-CoP)/2 + WR*AY_max*cg/tw/2];
 frontF(2,:) = [0 0 (WF/2+WF*AY_max*cg/tw/2)*AY_max];
 rearF(2,:) = [0 0 (WR/2+WR*AY_max*cg/tw/2)*AY_max];
 frontF(1,:) = [0 -(WF/2 -WF*AX_min*cg/l/2)*AX_min 0];
 rearF(1,:) = [W*AX_max/2 -(WR/2 +WR*AX_min*cg/l/2)*AX_min 0];
 %% Section 19: Plot Results
-disp('Plotting Results')
-global laptime Endurance_Score laptime_ax Autocross_Score accel_time Accel_Score skidpad_time Skidpad_Score Total_Points distance velocity acceleration lateral_accel distance_ax velocity_ax acceleration_ax lateral_accel_ax
-% Check if required variables exist
-required_vars = {'laptime', 'Endurance_Score', 'laptime_ax', 'Autocross_Score', ...
-    'accel_time', 'Accel_Score', 'skidpad_time', 'Skidpad_Score', 'Total_Points', ...
-    'distance', 'velocity', 'acceleration', 'lateral_accel', ...
-    'distance_ax', 'velocity_ax', 'acceleration_ax', 'lateral_accel_ax'};
-for v = required_vars
-    if ~exist(v{1}, 'var')
-        error('Required variable %s is not defined', v{1});
-    end
-end
 disp('Endurance Laptime')
 disp(laptime)
 disp('Endurance Score')
@@ -1593,94 +1663,41 @@ disp('Skidpad Score')
 disp(Skidpad_Score)
 disp('Total Points')
 disp(Total_Points)
-% Store outputs in global structure
-global sim_data
-sim_data.outputs = struct('laptime', laptime, 'Endurance_Score', Endurance_Score, ...
-    'laptime_ax', laptime_ax, 'Autocross_Score', Autocross_Score, ...
-    'accel_time', accel_time, 'Accel_Score', Accel_Score, ...
-    'skidpad_time', skidpad_time, 'Skidpad_Score', Skidpad_Score, ...
-    'Total_Points', Total_Points);
-% Use results filename from sim_data
-results_filename = sim_data.results_filename;
-% Create directory if it doesn't exist
-results_folder = fileparts(results_filename);
-if ~exist(results_folder, 'dir')
-    mkdir(results_folder);
-end
-% Combine all fields (outputs first, then inputs)
-all_fields = [fieldnames(sim_data.outputs); fieldnames(sim_data.tire_inputs); ...
-    fieldnames(sim_data.powertrain_inputs); fieldnames(sim_data.vehicle_inputs); ...
-    fieldnames(sim_data.suspension_inputs); fieldnames(sim_data.aero_inputs)];
-all_values = [struct2cell(sim_data.outputs); struct2cell(sim_data.tire_inputs); ...
-    struct2cell(sim_data.powertrain_inputs); struct2cell(sim_data.vehicle_inputs); ...
-    struct2cell(sim_data.suspension_inputs); struct2cell(sim_data.aero_inputs)];
-% Read existing CSV to determine next run number
-if exist(results_filename, 'file')
-    try
-        existing_data = readcell(results_filename);
-        % Replace missing values with empty strings
-        existing_data(ismissing(existing_data)) = {''};
-        % Validate field count consistency
-        if size(existing_data, 1) ~= length(all_fields)
-            warning('Existing CSV has %d rows, expected %d. Starting new CSV.', ...
-                size(existing_data, 1), length(all_fields));
-            run_num = 1;
-        else
-            if size(existing_data, 2) >= 2
-                run_num = floor(size(existing_data, 2)/2) + 1;
-            else
-                run_num = 1;
-            end
-        end
-    catch e
-        warning('Failed to read results.csv: %s. Starting new CSV.', e.message);
-        run_num = 1;
-    end
-else
-    run_num = 1;
-end
-% Prepare data for writing
-labels = all_fields';
-values = cellfun(@num2str, all_values, 'UniformOutput', false)';
-% Write to CSV
-try
-    if run_num == 1
-        % First run: write labels and values
-        data = [labels; values]';
-        writecell(data, results_filename);
-    else
-        % Append new run as additional columns
-        if size(existing_data, 1) < length(labels)
-            existing_data(end+1:length(labels), :) = {''};
-        end
-        existing_data(:, end+1:end+2) = [labels; values]';
-        writecell(existing_data, results_filename);
-    end
-    disp('Results appended to results.csv');
-catch e
-    error('Failed to write to results.csv: %s', e.message);
-end
-% Plotting
+
+% % Prepend name-value pairs to the front of sim_data_outputs
+% sim_data_outputs = {'laptime', laptime, ...
+%     'Endurance_Score', Endurance_Score, ...
+%     'laptime_ax', laptime_ax, ...
+%     'Autocross_Score', Autocross_Score, ...
+%     'accel_time', accel_time, ...
+%     'Accel_Score', Accel_Score, ...
+%     'skidpad_time', skidpad_time, ...
+%     'Skidpad_Score', Skidpad_Score, ...
+%     'Total_Points', Total_Points, ...
+%     sim_data_outputs{:}};
+
+
+% This is just to make some pretty pictures, feel free to comment this out
 figure
-plot(distance, velocity, 'k')
+plot(distance,velocity,'k')
 title('Endurance Simulation Velocity Trace')
 xlabel('Distance Travelled (d) [ft]')
 ylabel('Velocity (V) [ft/s]')
 figure
-plot(distance, acceleration, distance, lateral_accel)
+plot(distance,acceleration,distance,lateral_accel)
 title('Endurance Simulation Acceleration Traces')
 xlabel('Distance Travelled (d) [ft]')
 ylabel('Acceleration [g]')
-legend('Longitudinal', 'Lateral')
+legend('Longitudinal','Lateral')
 figure
-plot(distance_ax, velocity_ax, 'k')
+plot(distance_ax,velocity_ax,'k')
 title('Autocross Simulation Velocity Trace')
 xlabel('Distance Travelled (d) [ft]')
 ylabel('Velocity (V) [ft/s]')
 figure
-plot(distance_ax, acceleration_ax, distance_ax, lateral_accel_ax)
+plot(distance_ax,acceleration_ax,distance_ax,lateral_accel_ax)
 title('Autocross Simulation Acceleration Traces')
 xlabel('Distance Travelled (d) [ft]')
 ylabel('Acceleration [g]')
-legend('Longitudinal', 'Lateral')
+legend('Longitudinal','Lateral')
 disp('Analysis Complete')
