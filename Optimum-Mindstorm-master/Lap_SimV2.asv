@@ -4,16 +4,17 @@ clc
 % Define weight
 sweepVar = [620,628,630,632,640]; % Adjust as needed
 sweep = 1; % Loop index
-
+num_runs = length(sweepVar);
 % Initialize global sim_data
 global sim_data W
 sim_data = struct('tire_inputs', [], 'powertrain_inputs', [], 'vehicle_inputs', [], ...
     'suspension_inputs', [], 'aero_inputs', [], 'outputs', [], 'results_filename', []);
+parpool;
 % Initialize progress bar
 h = waitbar(0, 'Weight');
 
 % While loop to sweep mass
-while sweep <= length(sweepVar)
+parfor sweep = num_runs
     W = sweepVar(sweep);
     fprintf('Run %d/%d: Weight = %.2f ft\n', sweep, length(sweepVar), W);
 
