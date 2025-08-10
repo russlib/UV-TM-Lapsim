@@ -1,22 +1,31 @@
 %% Weight  Sweep with While Loop
 clear all
 clc
+
+
+% engineTqLow = [220 222 224 226 228 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230];
+% engineTqLowMed = [220 222 224 226 228 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230];
+% engineTqMed = [220 222 224 226 228 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230];
+% engineTqHigh = [220 222 224 226 228 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230];
+% engineTqMax = [220 222 224 226 228 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230];
+
+
+
 % Define weight
-sweepVar = [620,628,630,632,640]; % Adjust as needed
+sweepVar = [1.5,2,2.5,3,3.5,4,4.5]; % Adjust as needed
 sweep = 1; % Loop index
-num_runs = length(sweepVar);
+
 % Initialize global sim_data
-global sim_data W
+global sim_data cl
 sim_data = struct('tire_inputs', [], 'powertrain_inputs', [], 'vehicle_inputs', [], ...
     'suspension_inputs', [], 'aero_inputs', [], 'outputs', [], 'results_filename', []);
-parpool;
 % Initialize progress bar
-h = waitbar(0, 'Weight');
+h = waitbar(0, 'cl');
 
 % While loop to sweep mass
-parfor sweep = num_runs
-    W = sweepVar(sweep);
-    fprintf('Run %d/%d: Weight = %.2f ft\n', sweep, length(sweepVar), W);
+while sweep <= length(sweepVar)
+    cl = sweepVar(sweep);
+    fprintf('Run %d/%d: Weight = %.2f units\n', sweep, length(sweepVar), cl);
 
 %UV26 LapSim
 % Russell B,Pual S
@@ -102,7 +111,14 @@ disp('Tire inputs and results filename stored for logging');
 disp('Loading Engine Model')
 engineSpeed = [100:100:5000]; % RPM
 % torque should be in N-m:
-engineTq = [220 222 224 226 228 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%variablesweep
+% engineTq = [220 222 224 226 228 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230];
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%variablesweep
+
+
 finalDrive = 42/10; % large sprocket/small sprocket
 drivetrainLosses = .95; % percent of torque that makes it to the rear wheels
 % PowerLimit = 80000*0.94*0.98; % [W]
@@ -137,11 +153,9 @@ LLTD = 50.5; % Front lateral load transfer distribution (%)
 cg = 9.05/12;
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%variablesweep
-% W = 630; % vehicle + driver weight (lbs)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%variablesweep
+
+W = 630; % vehicle + driver weight (lbs)
+
 
 WDF = 50; % front weight distribution (%)
 
@@ -243,8 +257,12 @@ disp('Loading Aero Model')
 % C = 1/2 * C * Frontal Area * conversion * airDensity
 % C = 0.5 * C * 1.15 [m^2] * 10.764 [m^2 to ft^2] * 0.00225 [slugs/ft^3]
 % C = 0.013926 * C
-cl=5; %coefficient of lift
-cd=2.5; %coefficient of drag
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%variablesweep
+cl=3.5; %coefficient of lift
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%variablesweep
+cd=1.5; %coefficient of drag
 Cl = 0.013926*cl;
 Cd = 0.013926*cd;
 CoP = 45; % front downforce distribution (%)
@@ -1700,30 +1718,30 @@ sim_data_outputs = {'laptime', laptime, ...
     'Total_Points', Total_Points};
 
 
-% This is just to make some pretty pictures, feel free to comment this out
-figure
-plot(distance,velocity,'k')
-title('Endurance Simulation Velocity Trace')
-xlabel('Distance Travelled (d) [ft]')
-ylabel('Velocity (V) [ft/s]')
-figure
-plot(distance,acceleration,distance,lateral_accel)
-title('Endurance Simulation Acceleration Traces')
-xlabel('Distance Travelled (d) [ft]')
-ylabel('Acceleration [g]')
-legend('Longitudinal','Lateral')
-figure
-plot(distance_ax,velocity_ax,'k')
-title('Autocross Simulation Velocity Trace')
-xlabel('Distance Travelled (d) [ft]')
-ylabel('Velocity (V) [ft/s]')
-figure
-plot(distance_ax,acceleration_ax,distance_ax,lateral_accel_ax)
-title('Autocross Simulation Acceleration Traces')
-xlabel('Distance Travelled (d) [ft]')
-ylabel('Acceleration [g]')
-legend('Longitudinal','Lateral')
-disp('Analysis Complete')
+% % This is just to make some pretty pictures, feel free to comment this out
+% %figure;
+% plot(distance,velocity,'k')
+% title('Endurance Simulation Velocity Trace')
+% xlabel('Distance Travelled (d) [ft]')
+% ylabel('Velocity (V) [ft/s]')
+% %figure
+% plot(distance,acceleration,distance,lateral_accel)
+% title('Endurance Simulation Acceleration Traces')
+% xlabel('Distance Travelled (d) [ft]')
+% ylabel('Acceleration [g]')
+% legend('Longitudinal','Lateral')
+% %figure
+% plot(distance_ax,velocity_ax,'k')
+% title('Autocross Simulation Velocity Trace')
+% xlabel('Distance Travelled (d) [ft]')
+% ylabel('Velocity (V) [ft/s]')
+% %figure
+% plot(distance_ax,acceleration_ax,distance_ax,lateral_accel_ax)
+% title('Autocross Simulation Acceleration Traces')
+% xlabel('Distance Travelled (d) [ft]')
+% ylabel('Acceleration [g]')
+% legend('Longitudinal','Lateral')
+% disp('Analysis Complete')
 
 
 
@@ -1803,7 +1821,7 @@ writecell(output_data, csv_file, 'Delimiter', ',');
 disp('Data written to CSV successfully');
 
 % Update progress bar and loop index
-    waitbar(sweep/length(sweepVar), h, sprintf('sweepVar Sweep: %d%% (cg = %.2f )', round(100*i/length(sweepVar)), W));
+    waitbar(sweep/length(sweepVar), h, sprintf('sweepVar Sweep: %d%% (cg = %.2f )', round(100*i/length(sweepVar)), cl));
     sweep = sweep + 1;
 end
 close(h)
