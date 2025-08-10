@@ -2,17 +2,13 @@
 clear all
 clc
 
-% engineTqLow1 = [55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55 55];
-% engineTqLow2 = [105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105 105];
-% engineTqLow3 = [155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155 155];
-% engineTqLow4 = [180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180 180];
-% engineTqLow5 = [230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230];
+engineTq1 = [100,110,120,130,140];
 
 
 
 
 % Define weight
-sweepVar = [1.5,2,2.5,3,3.5,4,4.5]; % Adjust as needed
+sweepVar = [engineTq1]; % Adjust as needed
 sweep = 1; % Loop index
 
 % Initialize global sim_data
@@ -26,7 +22,7 @@ h = waitbar(0, 'cl');
 while sweep <= length(sweepVar)
     cl = sweepVar(sweep);
     fprintf('Run %d/%d: Weight = %.2f units\n', sweep, length(sweepVar), cl);
-
+engineTq = cl;
 %UV26 LapSim
 % Russell B,Pual S
 % Based offClemson Formula SAE - Jonathan Vogel
@@ -143,7 +139,7 @@ sim_data_powertrain_inputs = {'finalDrive', finalDrive, ...
     'drivetrainLosses', drivetrainLosses, ...
     'PowerLimit', PowerLimit, ...
     'T_lock', T_lock, ...
-    'VMAX', VMAX};
+    'VMAX', VMAX,"TorqueLimit", engineTq};
 
 disp('Powertrain inputs stored for logging');
 %% Section 3: Vehicle Architecture
