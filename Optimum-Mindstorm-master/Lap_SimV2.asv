@@ -2,11 +2,11 @@
 clear all
 clc
 
-PowerLimit = [40000,42500,45000,47500,50000,52500,55000,57500,60000,62500,65000,67500,]; % [W]
+PowerLimit = [1000,5000,10000,12500,15000,17500,20000,22500,25000,27500,30000,32500,35000, 100000]; % [W]
 
 
 % Define weight
-sweepVar = [PowerLimit]; % Adjust as needed
+sweepVar = [engineTq1]; % Adjust as needed
 sweep = 1; % Loop index
 
 % Initialize global sim_data
@@ -20,7 +20,7 @@ h = waitbar(0, 'TestVar');
 while sweep <= length(sweepVar)
     TestVar = sweepVar(sweep);
     fprintf('Run %d/%d: Weight = %.2f units\n', sweep, length(sweepVar), TestVar);
-PowerLimit = TestVar;
+engineTq = TestVar;
 %UV26 LapSim
 % Russell B,Pual S
 % Based offClemson Formula SAE - Jonathan Vogel
