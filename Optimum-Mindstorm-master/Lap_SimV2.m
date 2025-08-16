@@ -2,26 +2,27 @@
 clear all
 clc
 
-PowerLimit = [40000,42500,45000,47500,50000,52500,55000,57500,60000,62500,65000,67500]; % [W]
-% PowerLimit = [40000]; % [W]
+engineTq1 = [5:10:230];
+
+
 
 
 % Define weight
-sweepVar = [PowerLimit]; % Adjust as needed
+sweepVar = [engineTq1]; % Adjust as needed
 sweep = 1; % Loop index
 
 % Initialize global sim_data
-global sim_data TestVar
+global sim_data cl
 sim_data = struct('tire_inputs', [], 'powertrain_inputs', [], 'vehicle_inputs', [], ...
     'suspension_inputs', [], 'aero_inputs', [], 'outputs', [], 'results_filename', []);
 % Initialize progress bar
-h = waitbar(0, 'TestVar');
+h = waitbar(0, 'cl');
 
 % While loop to sweep mass
 while sweep <= length(sweepVar)
-    TestVar = sweepVar(sweep);
-    fprintf('Run %d/%d: Weight = %.2f units\n', sweep, length(sweepVar), TestVar);
-PowerLimit = TestVar;
+    cl = sweepVar(sweep);
+    fprintf('Run %d/%d: Weight = %.2f units\n', sweep, length(sweepVar), cl);
+engineTq = cl;
 %UV26 LapSim
 % Russell B,Pual S
 % Based offClemson Formula SAE - Jonathan Vogel
@@ -107,22 +108,17 @@ disp('Loading Engine Model')
 engineSpeed = [100:100:5000]; % RPM
 % torque should be in N-m:
 
-
-engineTq = [220 222 224 226 228 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230];
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%variablesweep
+% engineTq = [220 222 224 226 228 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230 230];
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%variablesweep
 
 
 finalDrive = 42/10; % large sprocket/small sprocket
 drivetrainLosses = .95; % percent of torque that makes it to the rear wheels
-% PowerLimit = 80000*0.94*0.98; % [W]
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%variablesweep
-% PowerLimit = 45000; % [W]
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%variablesweep
-
+PowerLimit = 80000*0.94*0.98; % [W]
+%PowerLimit = 45000; % [W]
 T_lock = 67; % differential locking torque (0 =  open, 100 = locked)
 
 % Intermediary Calcs/Save your results into the workspace
@@ -257,9 +253,11 @@ disp('Loading Aero Model')
 % C = 1/2 * C * Frontal Area * conversion * airDensity
 % C = 0.5 * C * 1.15 [m^2] * 10.764 [m^2 to ft^2] * 0.00225 [slugs/ft^3]
 % C = 0.013926 * C
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%variablesweep
 cl=3.5; %coefficient of lift
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%variablesweep
 cd=1.5; %coefficient of drag
 Cl = 0.013926*cl;
 Cd = 0.013926*cd;
